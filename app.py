@@ -63,6 +63,12 @@ with st.spinner("获取实时数据中... (yfinance API)"):
     a518850_price = get_current_price("518850.SS")
 
 if gold_price and usdcny and iaum_price and a518850_price:
+    import datetime
+    # Determine which market to show first based on UTC time (to avoid timezone dependencies)
+    # Beijing time is UTC+8. A-share market is roughly 9:30-15:00. US market is roughly 21:30-04:00.
+    now_bj = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+    show_a_share_first = (6 <= now_bj.hour < 15)
+    
     # ---------------------------------------------------------
     # Logic Calculations
     # ---------------------------------------------------------
@@ -86,26 +92,35 @@ if gold_price and usdcny and iaum_price and a518850_price:
     
     def format_premium(val):
         return f"{val * 100:.2f}%"
-    
-    with col1:
-        st.subheader("IAUM")
-        metric_cols = st.columns(3)
-        metric_cols[0].metric("当前市场价", f"${iaum_price:.4f}")
-        metric_cols[1].metric("理论公平价", f"${iaum_theo:.4f}")
-        # Inverse color: higher premium is bad (red)
-        metric_cols[2].metric("折溢价率", format_premium(iaum_premium), 
-                              delta=format_premium(iaum_premium),
-                              delta_color="inverse")
-                              
-    with col2:
-        st.subheader("518850.SS")
-        metric_cols = st.columns(3)
-        metric_cols[0].metric("当前市场价", f"¥{a518850_price:.3f}")
-        metric_cols[1].metric("理论公平价", f"¥{a518850_theo:.3f}")
-        # Inverse color: higher premium is bad (red)
-        metric_cols[2].metric("折溢价率", format_premium(a518850_premium), 
-                              delta=format_premium(a518850_premium),
-                              delta_color="inverse")
+        
+    def render_iaum(col):
+        with col:
+            st.subheader("IAUM")
+            metric_cols = st.columns(3)
+            metric_cols[0].metric("当前市场价", f"${iaum_price:.4f}")
+            metric_cols[1].metric("理论公平价", f"${iaum_theo:.4f}")
+            # Inverse color: higher premium is bad (red)
+            metric_cols[2].metric("折溢价率", format_premium(iaum_premium), 
+                                  delta=format_premium(iaum_premium),
+                                  delta_color="inverse")
+
+    def render_518850(col):
+        with col:
+            st.subheader("518850.SS")
+            metric_cols = st.columns(3)
+            metric_cols[0].metric("当前市场价", f"¥{a518850_price:.3f}")
+            metric_cols[1].metric("理论公平价", f"¥{a518850_theo:.3f}")
+            # Inverse color: higher premium is bad (red)
+            metric_cols[2].metric("折溢价率", format_premium(a518850_premium), 
+                                  delta=format_premium(a518850_premium),
+                                  delta_color="inverse")
+                                  
+    if show_a_share_first:
+        render_518850(col1)
+        render_iaum(col2)
+    else:
+        render_iaum(col1)
+        render_518850(col2)
 
     st.divider()
 
@@ -139,15 +154,28 @@ if gold_price and usdcny and iaum_price and a518850_price:
                 return "🚨 已到价！"
             return f"需跌 {drop_val * 100:.2f}%"
 
-        defense_data.append({
+        row = {
             "防线": name,
             "国际金价目标 ($)": f"{level:.2f}",
             "金价距离防线": format_drop(gold_drop),
-            "IAUM 目标买入 ($)": f"{iaum_target:.4f}",
-            "IAUM 距离防线": format_drop(iaum_drop),
-            "518850 目标买入 (¥)": f"{a518850_target:.3f}",
-            "518850 距离防线": format_drop(a518850_drop),
-        })
+        }
+        
+        if show_a_share_first:
+            row.update({
+                "518850 目标买入 (¥)": f"{a518850_target:.3f}",
+                "518850 距离防线": format_drop(a518850_drop),
+                "IAUM 目标买入 ($)": f"{iaum_target:.4f}",
+                "IAUM 距离防线": format_drop(iaum_drop),
+            })
+        else:
+            row.update({
+                "IAUM 目标买入 ($)": f"{iaum_target:.4f}",
+                "IAUM 距离防线": format_drop(iaum_drop),
+                "518850 目标买入 (¥)": f"{a518850_target:.3f}",
+                "518850 距离防线": format_drop(a518850_drop),
+            })
+            
+        defense_data.append(row)
         
     df_defense = pd.DataFrame(defense_data)
     
@@ -216,25 +244,35 @@ if gold_price and usdcny and iaum_price and a518850_price:
             
     with tab2:
         col1, col2 = st.columns(2)
-        with col1:
-            iaum_hist = get_history_data("IAUM", period="1d", interval="5m")
-            if not iaum_hist.empty:
-                fig_iaum = go.Figure()
-                fig_iaum.add_trace(go.Scatter(x=iaum_hist.index, y=iaum_hist['Close'], mode='lines', name='IAUM', line_color='#00BFFF', fill='tozeroy'))
-                fig_iaum.update_layout(title="IAUM 今日分时图", xaxis_title="时间", yaxis_title="价格 ($)", template="plotly_white", margin=dict(l=20, r=20, t=40, b=20), dragmode='pan', hovermode='x unified')
-                st.plotly_chart(fig_iaum, use_container_width=True, config={'scrollZoom': True})
-            else:
-                 st.info("当前时间可能非交易时段，或无法获取 IAUM 分时数据。")
-                 
-        with col2:
-            a518850_hist = get_history_data("518850.SS", period="1d", interval="5m")
-            if not a518850_hist.empty:
-                fig_a518850 = go.Figure()
-                fig_a518850.add_trace(go.Scatter(x=a518850_hist.index, y=a518850_hist['Close'], mode='lines', name='518850.SS', line_color='#FF4500', fill='tozeroy'))
-                fig_a518850.update_layout(title="518850.SS 今日分时图", xaxis_title="时间", yaxis_title="价格 (¥)", template="plotly_white", margin=dict(l=20, r=20, t=40, b=20), dragmode='pan', hovermode='x unified')
-                st.plotly_chart(fig_a518850, use_container_width=True, config={'scrollZoom': True})
-            else:
-                st.info("当前时间可能非交易时段，或无法获取 518850.SS 分时数据。")
+        
+        def render_iaum_chart(col):
+            with col:
+                iaum_hist = get_history_data("IAUM", period="1d", interval="5m")
+                if not iaum_hist.empty:
+                    fig_iaum = go.Figure()
+                    fig_iaum.add_trace(go.Scatter(x=iaum_hist.index, y=iaum_hist['Close'], mode='lines', name='IAUM', line_color='#00BFFF', fill='tozeroy'))
+                    fig_iaum.update_layout(title="IAUM 今日分时图", xaxis_title="时间", yaxis_title="价格 ($)", template="plotly_white", margin=dict(l=20, r=20, t=40, b=20), dragmode='pan', hovermode='x unified')
+                    st.plotly_chart(fig_iaum, use_container_width=True, config={'scrollZoom': True})
+                else:
+                     st.info("当前时间可能非交易时段，或无法获取 IAUM 分时数据。")
+                     
+        def render_518850_chart(col):
+            with col:
+                a518850_hist = get_history_data("518850.SS", period="1d", interval="5m")
+                if not a518850_hist.empty:
+                    fig_a518850 = go.Figure()
+                    fig_a518850.add_trace(go.Scatter(x=a518850_hist.index, y=a518850_hist['Close'], mode='lines', name='518850.SS', line_color='#FF4500', fill='tozeroy'))
+                    fig_a518850.update_layout(title="518850.SS 今日分时图", xaxis_title="时间", yaxis_title="价格 (¥)", template="plotly_white", margin=dict(l=20, r=20, t=40, b=20), dragmode='pan', hovermode='x unified')
+                    st.plotly_chart(fig_a518850, use_container_width=True, config={'scrollZoom': True})
+                else:
+                    st.info("当前时间可能非交易时段，或无法获取 518850.SS 分时数据。")
+                    
+        if show_a_share_first:
+            render_518850_chart(col1)
+            render_iaum_chart(col2)
+        else:
+            render_iaum_chart(col1)
+            render_518850_chart(col2)
 
 else:
     st.error("获取基础数据失败，请检查网络（或代理设置）后刷新重试。")
