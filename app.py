@@ -138,7 +138,7 @@ if gold_price and usdcny and iaum_price and a518850_price:
         
         def format_drop(drop_val):
             if drop_val <= 0:
-                return "已跌破或达到"
+                return "🚨 已到价！"
             return f"需跌 {drop_val * 100:.2f}%"
 
         defense_data.append({
@@ -151,7 +151,25 @@ if gold_price and usdcny and iaum_price and a518850_price:
             "518850 距离防线": format_drop(a518850_drop),
         })
         
-    st.dataframe(pd.DataFrame(defense_data), use_container_width=True, hide_index=True)
+    df_defense = pd.DataFrame(defense_data)
+    
+    def highlight_reached(val):
+        if val == "🚨 已到价！":
+            return 'color: #ff4b4b; font-weight: bold; background-color: rgba(255, 75, 75, 0.1);'
+        return ''
+        
+    # Pandas >= 2.1.0 uses map, older versions use applymap
+    try:
+        styled_df = df_defense.style.map(highlight_reached)
+    except AttributeError:
+        styled_df = df_defense.style.applymap(highlight_reached)
+        
+    st.dataframe(styled_df, use_container_width=True, hide_index=True)
+    
+    # Trigger popups for reached lines
+    for name, level in defense_lines.items():
+        if gold_price <= level:
+            st.toast(f"**警报**：国际金价已跌至或跌破 {name} (${level})！", icon="🚨")
     
     st.divider()
 
@@ -162,9 +180,9 @@ if gold_price and usdcny and iaum_price and a518850_price:
     tab1, tab2 = st.tabs(["国际金价走势 (含防线)", "标的实时分时图"])
     
     with tab1:
-        gold_hist = get_history_data("GC=F", period="6mo", interval="1d")
+        gold_hist = get_history_data("GC=F", period="2y", interval="1d")
         if gold_hist.empty:
-            gold_hist = get_history_data("XAUUSD=X", period="6mo", interval="1d")
+            gold_hist = get_history_data("XAUUSD=X", period="2y", interval="1d")
             
         if not gold_hist.empty:
             fig = go.Figure()
@@ -185,7 +203,7 @@ if gold_price and usdcny and iaum_price and a518850_price:
                               annotation_position="bottom right")
                               
             fig.update_layout(
-                title="国际金价最近6个月走势与防线对比", 
+                title="国际金价最近2年走势与防线对比", 
                 xaxis_title="日期", 
                 yaxis_title="价格 ($)",
                 height=500,
