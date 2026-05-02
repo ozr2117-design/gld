@@ -125,8 +125,10 @@ if gold_price and usdcny and iaum_price and a518850_price:
     # Calculate mapping and distance
     defense_data = []
     for name, level in defense_lines.items():
-        iaum_target = level * 0.01
-        a518850_target = (level / 31.1035) * usdcny * 0.01
+        # Target buy price should account for current premium/discount
+        # This ensures the limit order is placed at the expected market price when gold hits the defense line
+        iaum_target = iaum_price * (level / gold_price)
+        a518850_target = a518850_price * (level / gold_price)
         
         # Calculate how much it needs to drop (percentage)
         # Drop % = (Current - Target) / Current
