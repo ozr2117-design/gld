@@ -68,10 +68,10 @@ if gold_price and usdcny and iaum_price and a518850_price:
     # ---------------------------------------------------------
     # Logic Calculations
     # ---------------------------------------------------------
-    # IAUM Theoretical = Gold * 0.0917
-    iaum_theo = gold_price * 0.0917
-    # 518850 Theoretical = (Gold / 31.1035) * USDCNY
-    a518850_theo = (gold_price / 31.1035) * usdcny
+    # IAUM Theoretical = Gold * 0.01 (1/100 ounce)
+    iaum_theo = gold_price * 0.01
+    # 518850 Theoretical = (Gold / 31.1035) * USDCNY * 0.01 (1 share = 0.01 gram)
+    a518850_theo = (gold_price / 31.1035) * usdcny * 0.01
     
     # Premium = (Market / Theoretical) - 1
     iaum_premium = (iaum_price / iaum_theo) - 1
@@ -90,7 +90,7 @@ if gold_price and usdcny and iaum_price and a518850_price:
         return f"{val * 100:.2f}%"
     
     with col1:
-        st.subheader("🇺🇸 IAUM (美股金)")
+        st.subheader("IAUM")
         metric_cols = st.columns(3)
         metric_cols[0].metric("当前市场价", f"${iaum_price:.4f}")
         metric_cols[1].metric("理论公平价", f"${iaum_theo:.4f}")
@@ -100,7 +100,7 @@ if gold_price and usdcny and iaum_price and a518850_price:
                               delta_color="inverse")
                               
     with col2:
-        st.subheader("🇨🇳 518850.SS (A股华夏黄金)")
+        st.subheader("518850.SS")
         metric_cols = st.columns(3)
         metric_cols[0].metric("当前市场价", f"¥{a518850_price:.3f}")
         metric_cols[1].metric("理论公平价", f"¥{a518850_theo:.3f}")
@@ -125,8 +125,8 @@ if gold_price and usdcny and iaum_price and a518850_price:
     # Calculate mapping and distance
     defense_data = []
     for name, level in defense_lines.items():
-        iaum_target = level * 0.0917
-        a518850_target = (level / 31.1035) * usdcny
+        iaum_target = level * 0.01
+        a518850_target = (level / 31.1035) * usdcny * 0.01
         
         # Calculate how much it needs to drop (percentage)
         # Drop % = (Current - Target) / Current
