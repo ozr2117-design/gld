@@ -3,7 +3,7 @@ import yfinance as yf
 import pandas as pd
 import plotly.graph_objs as go
 
-st.set_page_config(page_title="黄金资产实时监控", layout="wide", page_icon="🪙")
+st.set_page_config(page_title="Gold Monitor", layout="wide")
 
 # Defense Lines (International Gold Price)
 L1 = 4600
@@ -78,7 +78,7 @@ if gold_price and usdcny and iaum_price and a518850_price:
     # ---------------------------------------------------------
     # UI/UX Module 1: Metric Cards
     # ---------------------------------------------------------
-    st.markdown("<h2 style='color: #FFD700; margin-bottom: 0;'>🪙 金属数据</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='color: #FFD700; margin-bottom: 0;'>金属数据</h2>", unsafe_allow_html=True)
     
     st.markdown(f"**当前国际金价**: `${gold_price:.2f}` &nbsp;&nbsp;|&nbsp;&nbsp; **美元兑人民币汇率**: `¥{usdcny:.4f}`")
     
