@@ -15,7 +15,15 @@ def get_current_price(ticker_symbol):
     """Fetch the latest available close price for a ticker."""
     try:
         ticker = yf.Ticker(ticker_symbol)
-        # Try 1-day 1-minute interval for real-time
+        # First, try to get from fast_info (more robust for real-time prices)
+        try:
+            price = ticker.fast_info.last_price
+            if price is not None and not pd.isna(price):
+                return price
+        except:
+            pass
+            
+        # Fallback to history
         data = ticker.history(period="1d", interval="1m")
         if data.empty:
             # Fallback to daily
@@ -24,6 +32,7 @@ def get_current_price(ticker_symbol):
             return data['Close'].iloc[-1]
         return None
     except Exception as e:
+        st.sidebar.error(f"Error fetching {ticker_symbol}: {e}")
         return None
 
 @st.cache_data(ttl=60)
@@ -37,7 +46,7 @@ def get_history_data(ticker_symbol, period="1mo", interval="1d"):
         return pd.DataFrame()
 
 # Main Header
-st.title("🪙 黄金资产实时监控看板")
+st.title("GOLD板板")
 st.markdown("实时对比**市场实际股价**与**基于国际金价换算的理论价**，并监控三大防御线。")
 
 # Fetch data
