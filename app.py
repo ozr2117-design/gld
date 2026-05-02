@@ -166,7 +166,14 @@ if gold_price and usdcny and iaum_price and a518850_price:
             
         if not gold_hist.empty:
             fig = go.Figure()
-            fig.add_trace(go.Scatter(x=gold_hist.index, y=gold_hist['Close'], mode='lines', name='国际金价', line=dict(color='#FFD700', width=2)))
+            fig.add_trace(go.Candlestick(
+                x=gold_hist.index, 
+                open=gold_hist['Open'], 
+                high=gold_hist['High'], 
+                low=gold_hist['Low'], 
+                close=gold_hist['Close'], 
+                name='国际金价'
+            ))
             
             # Add defense lines
             colors = ['#FF9900', '#FF6600', '#FF0000']
@@ -180,9 +187,12 @@ if gold_price and usdcny and iaum_price and a518850_price:
                 xaxis_title="日期", 
                 yaxis_title="价格 ($)",
                 height=500,
-                template="plotly_dark"
+                template="plotly_dark",
+                xaxis_rangeslider_visible=False,
+                dragmode='pan',
+                hovermode='x unified'
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True})
         else:
             st.warning("无法获取国际金价历史数据，图表暂不显示。")
             
@@ -193,8 +203,8 @@ if gold_price and usdcny and iaum_price and a518850_price:
             if not iaum_hist.empty:
                 fig_iaum = go.Figure()
                 fig_iaum.add_trace(go.Scatter(x=iaum_hist.index, y=iaum_hist['Close'], mode='lines', name='IAUM', line_color='#00BFFF', fill='tozeroy'))
-                fig_iaum.update_layout(title="IAUM 今日分时图", xaxis_title="时间", yaxis_title="价格 ($)", template="plotly_white", margin=dict(l=20, r=20, t=40, b=20))
-                st.plotly_chart(fig_iaum, use_container_width=True)
+                fig_iaum.update_layout(title="IAUM 今日分时图", xaxis_title="时间", yaxis_title="价格 ($)", template="plotly_white", margin=dict(l=20, r=20, t=40, b=20), dragmode='pan', hovermode='x unified')
+                st.plotly_chart(fig_iaum, use_container_width=True, config={'scrollZoom': True})
             else:
                  st.info("当前时间可能非交易时段，或无法获取 IAUM 分时数据。")
                  
@@ -203,8 +213,8 @@ if gold_price and usdcny and iaum_price and a518850_price:
             if not a518850_hist.empty:
                 fig_a518850 = go.Figure()
                 fig_a518850.add_trace(go.Scatter(x=a518850_hist.index, y=a518850_hist['Close'], mode='lines', name='518850.SS', line_color='#FF4500', fill='tozeroy'))
-                fig_a518850.update_layout(title="518850.SS 今日分时图", xaxis_title="时间", yaxis_title="价格 (¥)", template="plotly_white", margin=dict(l=20, r=20, t=40, b=20))
-                st.plotly_chart(fig_a518850, use_container_width=True)
+                fig_a518850.update_layout(title="518850.SS 今日分时图", xaxis_title="时间", yaxis_title="价格 (¥)", template="plotly_white", margin=dict(l=20, r=20, t=40, b=20), dragmode='pan', hovermode='x unified')
+                st.plotly_chart(fig_a518850, use_container_width=True, config={'scrollZoom': True})
             else:
                 st.info("当前时间可能非交易时段，或无法获取 518850.SS 分时数据。")
 
