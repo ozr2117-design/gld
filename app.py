@@ -45,9 +45,7 @@ def get_history_data(ticker_symbol, period="1mo", interval="1d"):
     except Exception as e:
         return pd.DataFrame()
 
-# Main Header
-st.title("GOLD板板")
-st.markdown("实时对比**市场实际股价**与**基于国际金价换算的理论价**，并监控三大防御线。")
+# Main Header Removed to move content up
 
 # Fetch data
 with st.spinner("获取实时数据中... (yfinance API)"):
@@ -80,7 +78,7 @@ if gold_price and usdcny and iaum_price and a518850_price:
     # ---------------------------------------------------------
     # UI/UX Module 1: Metric Cards
     # ---------------------------------------------------------
-    st.header("📊 实时看板")
+    st.markdown("<h2 style='color: #FFD700; margin-bottom: 0;'>🪙 金属数据</h2>", unsafe_allow_html=True)
     
     st.markdown(f"**当前国际金价**: `${gold_price:.2f}` &nbsp;&nbsp;|&nbsp;&nbsp; **美元兑人民币汇率**: `¥{usdcny:.4f}`")
     
