@@ -45,6 +45,18 @@ def get_history_data(ticker_symbol, period="1mo", interval="1d"):
     except Exception as e:
         return pd.DataFrame()
 
+@st.cache_data(ttl=3600)
+def get_spdr_holdings():
+    """Fetch SPDR Gold ETF holdings."""
+    try:
+        import akshare as ak
+        df = ak.macro_cons_gold()
+        if not df.empty:
+            df = df.sort_values(by='日期')
+        return df
+    except Exception as e:
+        return pd.DataFrame()
+
 # Main Header Removed to move content up
 
 # Fetch data
@@ -61,6 +73,9 @@ with st.spinner("获取实时数据中... (yfinance API)"):
          
     iaum_price = get_current_price("IAUM")
     a518850_price = get_current_price("518850.SS")
+    
+    # 抓取 SPDR 持仓数据
+    df_spdr = get_spdr_holdings()
 
 if gold_price and usdcny and iaum_price and a518850_price:
     import datetime
@@ -80,6 +95,15 @@ if gold_price and usdcny and iaum_price and a518850_price:
     # Premium = (Market / Theoretical) - 1
     iaum_premium = (iaum_price / iaum_theo) - 1
     a518850_premium = (a518850_price / a518850_theo) - 1
+    
+    # SPDR Holdings Logic
+    spdr_change_3d_pct = None
+    spdr_current_holding = None
+    if not df_spdr.empty and len(df_spdr) >= 4:
+        spdr_current_holding = df_spdr['总库存'].iloc[-1]
+        holding_3d_ago = df_spdr['总库存'].iloc[-4]
+        if holding_3d_ago > 0:
+            spdr_change_3d_pct = (spdr_current_holding - holding_3d_ago) / holding_3d_ago
 
     # ---------------------------------------------------------
     # UI/UX Module 1: Metric Cards
@@ -200,7 +224,35 @@ if gold_price and usdcny and iaum_price and a518850_price:
     st.divider()
 
     # ---------------------------------------------------------
-    # UI/UX Module 4: Interactive Charts
+    # UI/UX Module 4: 机构底仓探测器
+    # ---------------------------------------------------------
+    st.header("🏢 机构底仓探测器")
+    
+    col_inst1, col_inst2 = st.columns(2)
+    with col_inst1:
+        if spdr_current_holding is not None:
+            st.metric("SPDR 当前实物持仓量 (吨)", f"{spdr_current_holding:.2f}")
+        else:
+            st.metric("SPDR 当前实物持仓量 (吨)", "数据未获取")
+            
+    with col_inst2:
+        if spdr_change_3d_pct is not None:
+            st.metric("近 3 日机构持仓变化率", f"{spdr_change_3d_pct * 100:.3f}%")
+        else:
+            st.metric("近 3 日机构持仓变化率", "数据未获取")
+            
+    # 策略联动逻辑
+    # 当国际金价触及防线二（$4,560 - $4,580），且『近 3 日机构持仓变化率』的下降幅度小于 0.2%
+    if gold_price <= 4580 and gold_price >= 4560:
+        if spdr_change_3d_pct is not None and spdr_change_3d_pct > -0.002:
+            st.success("🟢 **缩量假摔：防御性建仓许可** - 金价触及防线二且机构未出现大规模减仓。")
+        elif spdr_change_3d_pct is not None and spdr_change_3d_pct <= -0.002:
+            st.warning("⚠️ **注意** - 金价触及防线二，但机构持仓出现明显下降，建议谨慎。")
+    
+    st.divider()
+
+    # ---------------------------------------------------------
+    # UI/UX Module 5: Interactive Charts
     # ---------------------------------------------------------
     st.header("📈 交互图表")
     tab1, tab2 = st.tabs(["国际金价走势 (含防线)", "标的实时分时图"])
